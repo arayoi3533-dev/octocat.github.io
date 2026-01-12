@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>簡易地震レーダー（リアルタイム震度）</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    body { margin:0; padding:0; height:100vh; font-family:sans-serif; }
+    #map { height:100%; }
+    .info {
+      position: absolute;
+      top: 10px; left: 50px; z-index: 1000;
+      background: rgba(255,255,255,0.85);
+      padding: 10px 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<div class="info" id="status">読み込み中...</div>
+
+<script>
+// かなり簡略化した地震レーダー（リアルタイム震度風）
+
+const map = L.map('map', {
+  zoomControl: false,
+  attributionControl: false
+}).setView([36.0, 138.0], 6);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+}).addTo(map);
+
+// 強震モニタ画像（防災科研公式）を重ねるだけの超シンプル版
+// ※商用利用NG・非公式利用は自己責任でお願いします
+function updateKmoni() {
+  const now = new Date();
+  // 画像は約1〜2秒ごとに更新される
+  const timeStr = now.toISOString().replace(/[-:T]/g,'').slice(0,14);
+  
+  const url = `https://www.kmoni.bosai.go.jp/data/map/\( {timeStr.slice(0,8)}/ \){timeStr}.jma_s.gif?${now.getTime()}`;
+  
+  // 既存のレイヤーを削除してから追加（ちらつき軽減）
+  if (window.lastKmoniLayer) map.removeLayer(window.lastKmoniLayer);
+  
+  const overlay = L.imageOverlay(url, 
+    [[20.0, 118.0], [48.0, 150.0]], // 日本付近の大まかな範囲
+    { opacity: 0.85 }
+  ).addTo(map);
+  
+  window.lastKmoniLayer = overlay;
+  
+  document.getElementById('status').innerHTML = 
+    `最終更新: ${now.toLocaleTimeString('ja-JP')}　（防災科研 強震モニタ画像）`;
+}
+
+// 1.5秒ごとに更新（体感的に自然）
+setInterval(updateKmoni, 1500);
+updateKmoni(); // 初回即実行
+
+</script>
+</body>
+</html>
